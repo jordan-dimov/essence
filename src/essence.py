@@ -44,19 +44,29 @@ def summarize_project(project_directory: str, output_file: str | None = None):
     if not output_file:
         output_file = os.path.join(project_directory, "essence.json")
     summary = {}
-    reqs_file = locate_requirements(project_directory)
-    if reqs_file is None:
-        typer.echo("No requirements.txt or pyproject.toml found. Skipping. ")
-    reqs_type = (
-        "requirements" if reqs_file.endswith("requirements.txt") else "pyproject"
-    )
-    summary["requirements"] = extract_requirements(reqs_file, reqs_type)
-    if reqs_type == "pyproject":
-        summary["metadata"] = extract_metadata(reqs_file)
 
     is_file_ignored = get_ignore_checker(project_directory)
 
-    summary["structure"] = extract_package_structure(project_directory, is_file_ignored)
+    roots: dict[str, str] = locate_requirements(project_directory, is_file_ignored)
+    if not roots:
+        typer.echo("No requirements.txt or pyproject.toml found. Skipping. ")
+        roots[project_directory] = ""
+
+    for root in roots:
+        reqs_file = roots[root]
+        root_summary = {}
+        if reqs_file:
+            reqs_type = (
+                "requirements"
+                if reqs_file.endswith("requirements.txt")
+                else "pyproject"
+            )
+            root_summary["requirements"] = extract_requirements(reqs_file, reqs_type)
+            if reqs_type == "pyproject":
+                root_summary["metadata"] = extract_metadata(reqs_file)
+
+        root_summary["structure"] = extract_package_structure(root, is_file_ignored)
+        summary[root] = root_summary
 
     with open(output_file, "w") as f:
         json.dump(summary, f, indent=4)

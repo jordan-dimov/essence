@@ -1,23 +1,25 @@
 {
-    "requirements": [
-        "python = \"^3.10\"",
-        "typer = \"^0.7.0\"",
-        "pathspec = \"^0.11.1\""
-    ],
-    "metadata": {
-        "name": "essence",
-        "description": "CLI tool to extract and summarise the essence large Python codebases"
-    },
-    "structure": {
-        "src": [
-            {
-                "name": "analyse_reqs.py",
-                "lines": 70
-            },
-            {
-                "name": "essence.py",
-                "lines": 90
-            }
-        ]
+    ".": {
+        "requirements": [
+            "python = \"^3.10\"",
+            "typer = \"^0.7.0\"",
+            "pathspec = \"^0.11.1\""
+        ],
+        "metadata": {
+            "name": "essence",
+            "description": "CLI tool to extract and summarise the essence large Python codebases"
+        },
+        "structure": {
+            "src": [
+                {
+                    "name": "analyse_reqs.py",
+                    "lines": 79
+                },
+                {
+                    "name": "essence.py",
+                    "lines": 98
+                }
+            ]
+        }
     }
 }
