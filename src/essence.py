@@ -4,6 +4,7 @@ import json
 import pathspec
 
 from analyse_reqs import locate_requirements, extract_requirements, extract_metadata
+from ignores import collect_ignored_files
 
 app = typer.Typer()
 
@@ -14,7 +15,7 @@ def extract_loc(py_file: str):
         return len(f.readlines())
 
 
-def extract_package_structure(project_directory: str, is_file_ignored: callable):
+def extract_package_structure(project_directory: str, ignored_files: list[str]):
     # Extract the structure of the project using os.walk
     # and return in compact form. Only include .py files.
     typer.echo(f"Extracting package structure from {project_directory}...")
@@ -22,7 +23,7 @@ def extract_package_structure(project_directory: str, is_file_ignored: callable)
     # Ignore files that match is_file_ignored() as well as entire .git directory
     # Only include directories that contain .py files
     for root, dirs, files in os.walk(project_directory):
-        if is_file_ignored(root):
+        if root in ignored_files:
             continue
         if ".git" in root:
             continue
@@ -45,9 +46,9 @@ def summarize_project(project_directory: str, output_file: str | None = None):
         output_file = os.path.join(project_directory, "essence.json")
     summary = {}
 
-    is_file_ignored = get_ignore_checker(project_directory)
+    ignored_files = collect_ignored_files(project_directory)
 
-    roots: dict[str, str] = locate_requirements(project_directory, is_file_ignored)
+    roots: dict[str, str] = locate_requirements(project_directory, ignored_files)
     if not roots:
         typer.echo("No requirements.txt or pyproject.toml found. Skipping. ")
         roots[project_directory] = ""
@@ -65,35 +66,13 @@ def summarize_project(project_directory: str, output_file: str | None = None):
             if reqs_type == "pyproject":
                 root_summary["metadata"] = extract_metadata(reqs_file)
 
-        root_summary["structure"] = extract_package_structure(root, is_file_ignored)
+        root_summary["structure"] = extract_package_structure(root, ignored_files)
         summary[root] = root_summary
 
     with open(output_file, "w") as f:
         json.dump(summary, f, indent=4)
 
     typer.echo(f"Summary written to {output_file}")
-
-
-def get_ignore_checker(project_directory):
-    specs = []
-
-    # Check if there is a .gitignore file
-    gitignore_file = os.path.join(project_directory, ".gitignore")
-    if os.path.exists(gitignore_file):
-        specs.append(pathspec.PathSpec.from_lines("gitwildmatch", open(gitignore_file)))
-
-    # Check in sub-directories
-    for root, dirs, files in os.walk(project_directory):
-        gitignore_file = os.path.join(root, ".gitignore")
-        if os.path.exists(gitignore_file):
-            specs.append(
-                pathspec.PathSpec.from_lines("gitwildmatch", open(gitignore_file))
-            )
-
-    def is_file_ignored(path):
-        return any(spec.match_file(path) for spec in specs)
-
-    return is_file_ignored
 
 
 if __name__ == "__main__":

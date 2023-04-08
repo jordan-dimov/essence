@@ -4,7 +4,7 @@ import typer
 
 
 def locate_requirements(
-    project_directory: str, is_file_ignored: callable
+    project_directory: str, ignored_files: list[str]
 ) -> dict[str, str]:
     # Try to locate requirements.txt or pyproject.toml
 
@@ -16,7 +16,7 @@ def locate_requirements(
         return roots
     # Try in sub-directories:
     for root, dirs, files in os.walk(project_directory):
-        if is_file_ignored(root):
+        if root in ignored_files:
             continue
         pyproject_file = os.path.join(root, "pyproject.toml")
         if os.path.exists(pyproject_file):
@@ -32,7 +32,7 @@ def locate_requirements(
 
     # Try in sub-directories:
     for root, dirs, files in os.walk(project_directory):
-        if is_file_ignored(root):
+        if root in ignored_files:
             continue
         requirements_file = os.path.join(root, "requirements.txt")
         if os.path.exists(requirements_file):
