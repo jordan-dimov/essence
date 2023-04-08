@@ -1,0 +1,19 @@
+{
+    "requirements": [
+        "python = \"^3.10\"",
+        "typer = \"^0.7.0\"",
+        "pathspec = \"^0.11.1\""
+    ],
+    "metadata": {
+        "name": "essence",
+        "description": "CLI tool to extract and summarise the essence large Python codebases"
+    },
+    "structure": {
+        "./src": [
+            {
+                "name": "essence.py",
+                "loc": 122
+            }
+        ]
+    }
+}
