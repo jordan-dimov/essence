@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "essence"
+version = "0.1.0"
+description = "CLI tool to extract and summarise the essence large Python codebases"
+authors = ["Jordan Dimov <jdimov@a115.co.uk>"]
+license = "Creative Commons"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+typer = "^0.7.0"
+
+[tool.poetry.dev-dependencies]
+ipdb = "^0.13.13"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
