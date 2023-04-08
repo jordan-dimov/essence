@@ -9,10 +9,14 @@
         "description": "CLI tool to extract and summarise the essence large Python codebases"
     },
     "structure": {
-        "./src": [
+        "src": [
+            {
+                "name": "analyse_reqs.py",
+                "lines": 70
+            },
             {
                 "name": "essence.py",
-                "loc": 122
+                "lines": 90
             }
         ]
     }

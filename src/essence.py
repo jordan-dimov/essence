@@ -3,61 +3,9 @@ import typer
 import json
 import pathspec
 
+from analyse_reqs import locate_requirements, extract_requirements, extract_metadata
+
 app = typer.Typer()
-
-
-def locate_requirements(project_directory: str):
-    # Try to locate requirements.txt or pyproject.toml
-    # TODO: Try harder
-    requirements_file = os.path.join(project_directory, "requirements.txt")
-    if os.path.exists(requirements_file):
-        return requirements_file
-    pyproject_file = os.path.join(project_directory, "pyproject.toml")
-    if os.path.exists(pyproject_file):
-        return pyproject_file
-
-
-def extract_requirements(requirements_file: str, reqs_type: str = "requirements"):
-    # Extract requirements from requirements.txt or pyproject.toml
-    dependencies = []
-    typer.echo(f"Extracting requirements from {requirements_file}...")
-    with open(requirements_file) as f:
-        if reqs_type == "requirements":
-            dependencies = f.readlines()
-        elif reqs_type == "pyproject":
-            # Find the section [tool.poetry.dependencies] and extract the dependencies
-            in_dependencies = False
-            for line in f:
-                if in_dependencies:
-                    if line.startswith("["):
-                        break
-                    else:
-                        clean_line = line.strip()
-                        if clean_line:
-                            dependencies.append(clean_line)
-                elif line.startswith("[tool.poetry.dependencies]"):
-                    in_dependencies = True
-    return dependencies
-
-
-def extract_metadata(pyproject_toml_file: str):
-    # Extract name and description from [tool.poetry] section of pyproject.toml
-    metadata = {}
-    typer.echo(f"Extracting metadata from {pyproject_toml_file}...")
-    with open(pyproject_toml_file) as f:
-        in_poetry = False
-        for line in f:
-            if in_poetry:
-                if line.startswith("["):
-                    break
-                else:
-                    if line.startswith("name"):
-                        metadata["name"] = line.split("=")[1].strip().strip('"')
-                    elif line.startswith("description"):
-                        metadata["description"] = line.split("=")[1].strip().strip('"')
-            elif line.startswith("[tool.poetry]"):
-                in_poetry = True
-    return metadata
 
 
 def extract_loc(py_file: str):
@@ -80,10 +28,14 @@ def extract_package_structure(project_directory: str, is_file_ignored: callable)
             continue
         py_files = [f for f in files if f.endswith(".py")]
         if py_files:
-            structure[root] = [
-                {"name": f, "loc": extract_loc(os.path.join(root, f))} for f in py_files
-            ]
-
+            files_in_dir = []
+            for f in py_files:
+                file_info = {"name": f, "lines": extract_loc(os.path.join(root, f))}
+                if file_info["lines"] > 0:
+                    files_in_dir.append(file_info)
+            if files_in_dir:
+                dir_label = root.replace(project_directory, "").strip("/")
+                structure[dir_label] = files_in_dir
     return structure
 
 
@@ -102,13 +54,7 @@ def summarize_project(project_directory: str, output_file: str | None = None):
     if reqs_type == "pyproject":
         summary["metadata"] = extract_metadata(reqs_file)
 
-    # Check if there is a .gitignore file
-    gitignore_file = os.path.join(project_directory, ".gitignore")
-    if os.path.exists(gitignore_file):
-        spec = pathspec.PathSpec.from_lines("gitwildmatch", open(gitignore_file))
-
-        def is_file_ignored(path):
-            return spec.match_file(path)
+    is_file_ignored = get_ignore_checker(project_directory)
 
     summary["structure"] = extract_package_structure(project_directory, is_file_ignored)
 
@@ -116,6 +62,28 @@ def summarize_project(project_directory: str, output_file: str | None = None):
         json.dump(summary, f, indent=4)
 
     typer.echo(f"Summary written to {output_file}")
+
+
+def get_ignore_checker(project_directory):
+    specs = []
+
+    # Check if there is a .gitignore file
+    gitignore_file = os.path.join(project_directory, ".gitignore")
+    if os.path.exists(gitignore_file):
+        specs.append(pathspec.PathSpec.from_lines("gitwildmatch", open(gitignore_file)))
+
+    # Check in sub-directories
+    for root, dirs, files in os.walk(project_directory):
+        gitignore_file = os.path.join(root, ".gitignore")
+        if os.path.exists(gitignore_file):
+            specs.append(
+                pathspec.PathSpec.from_lines("gitwildmatch", open(gitignore_file))
+            )
+
+    def is_file_ignored(path):
+        return any(spec.match_file(path) for spec in specs)
+
+    return is_file_ignored
 
 
 if __name__ == "__main__":
