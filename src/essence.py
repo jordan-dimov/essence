@@ -1,7 +1,7 @@
 import os
 import typer
 import json
-import pathspec
+import ast
 
 from analyse_reqs import locate_requirements, extract_requirements, extract_metadata
 from ignores import collect_ignored_files
@@ -9,10 +9,59 @@ from ignores import collect_ignored_files
 app = typer.Typer()
 
 
-def extract_loc(py_file: str):
+def _get_pyfile_stats(f):
+    stats = {
+        "top_level_statements": 0,
+        "decision_points": 0,
+        "function_defs": 0,
+        "imports": [],
+    }
+    # Extract the number of function or method definitions in a .py file
+    # and build a list of imports. Ignore comments and docstrings.
+
+    decision_nodes = (
+        ast.If,
+        ast.For,
+        ast.While,
+        ast.Try,
+        ast.With,
+        ast.AsyncFor,
+        ast.AsyncWith,
+    )
+    tree = ast.parse(f.read())
+    for node in ast.walk(tree):
+        if isinstance(node, decision_nodes):
+            stats["decision_points"] += 1
+        if isinstance(node, ast.Import):
+            for n in node.names:
+                stats["imports"].append(n.name)
+        elif isinstance(node, ast.ImportFrom):
+            stats["imports"].append(node.module)
+        elif isinstance(node, ast.Expr):
+            if isinstance(node.value, ast.Str):
+                continue
+        elif isinstance(node, ast.FunctionDef) or isinstance(
+            node, ast.AsyncFunctionDef
+        ):
+            stats["function_defs"] += 1
+    stats["top_level_statements"] = len(tree.body)
+
+    return stats
+
+
+def get_file_info(root: str, py_file: str):
+    file_path = os.path.join(root, py_file)
+    file_info = {"name": py_file}
     # Extract the number of lines of code in a .py file
-    with open(py_file) as f:
-        return len(f.readlines())
+    with open(file_path) as f:
+        stats = _get_pyfile_stats(f)
+        file_info["tl_statements"] = stats["top_level_statements"]
+        file_info["cyclomatic_complexity"] = stats["decision_points"] + 1
+        if stats["imports"]:
+            file_info["imports"] = stats["imports"]
+        if stats["function_defs"] > 0:
+            file_info["function_defs"] = stats["function_defs"]
+    return file_info
 
 
 def extract_package_structure(project_directory: str, ignored_files: list[str]):
@@ -31,8 +80,8 @@ def extract_package_structure(project_directory: str, ignored_files: list[str]):
         if py_files:
             files_in_dir = []
             for f in py_files:
-                file_info = {"name": f, "lines": extract_loc(os.path.join(root, f))}
-                if file_info["lines"] > 0:
+                file_info = get_file_info(root, f)
+                if file_info["tl_statements"] > 0:
                     files_in_dir.append(file_info)
             if files_in_dir:
                 dir_label = root.replace(project_directory, "").strip("/")
