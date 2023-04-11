@@ -34,9 +34,18 @@ def _get_pyfile_stats(f):
             stats["decision_points"] += 1
         if isinstance(node, ast.Import):
             for n in node.names:
-                stats["imports"].append(n.name)
+                import_details = {
+                    "name": n.name,
+                }
+                if n.asname and n.asname != n.name:
+                    import_details["asname"] = n.asname
+                stats["imports"].append(import_details)
         elif isinstance(node, ast.ImportFrom):
-            stats["imports"].append(node.module)
+            import_details = {
+                "module": node.module,
+                "names": [n.name for n in node.names],
+            }
+            stats["imports"].append(import_details)
         elif isinstance(node, ast.Expr):
             if isinstance(node.value, ast.Str):
                 continue
