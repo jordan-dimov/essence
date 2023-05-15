@@ -13,8 +13,9 @@ def _get_pyfile_stats(f):
     stats = {
         "top_level_statements": 0,
         "decision_points": 0,
-        "function_defs": 0,
         "imports": [],
+        "function_defs": [],
+        "class_defs": [],
     }
     # Extract the number of function or method definitions in a .py file
     # and build a list of imports. Ignore comments and docstrings.
@@ -39,13 +40,15 @@ def _get_pyfile_stats(f):
             if node.module not in ["__future__", "typing"]:
                 for node_name in node.names:
                     stats["imports"].append(f"{node.module}.{node_name.name}")
+        elif isinstance(node, ast.ClassDef):
+            stats["class_defs"].append(node.name)
         elif isinstance(node, ast.Expr):
             if isinstance(node.value, ast.Str):
                 continue
         elif isinstance(node, ast.FunctionDef) or isinstance(
             node, ast.AsyncFunctionDef
         ):
-            stats["function_defs"] += 1
+            stats["function_defs"].append(node.name)
     stats["top_level_statements"] = len(tree.body)
 
     return stats
@@ -61,8 +64,10 @@ def get_file_info(root: str, py_file: str):
         file_info["cyclomatic_complexity"] = stats["decision_points"] + 1
         if stats["imports"]:
             file_info["imports"] = stats["imports"]
-        if stats["function_defs"] > 0:
+        if stats["function_defs"]:
             file_info["function_defs"] = stats["function_defs"]
+        if stats["class_defs"]:
+            file_info["class_defs"] = stats["class_defs"]
     return file_info
 
 
@@ -78,6 +83,9 @@ def extract_package_structure(project_directory: str, ignored_files: list[str]):
             continue
         if ".git" in root:
             continue
+        # skip "tests" directories (exact match)
+        if root == os.path.join(project_directory, "tests"):
+            continue
         py_files = [f for f in files if f.endswith(".py")]
         if py_files:
             files_in_dir = []
@@ -92,7 +100,7 @@ def extract_package_structure(project_directory: str, ignored_files: list[str]):
 
 
 @app.command("summarize")
-def summarize_project(project_directory: str, output_file: str | None = None):
+def summarize_project(project_directory: str, output_file: str = ""):
     if not output_file:
         output_file = os.path.join(project_directory, "essence.json")
     summary = {}
