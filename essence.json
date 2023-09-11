@@ -12,12 +12,51 @@
         "structure": {
             "src": [
                 {
+                    "name": "ignores.py",
+                    "tl_statements": 3,
+                    "cyclomatic_complexity": 9,
+                    "imports": [
+                        "os",
+                        "pathspec"
+                    ],
+                    "function_defs": [
+                        "collect_ignored_files"
+                    ]
+                },
+                {
                     "name": "analyse_reqs.py",
-                    "lines": 79
+                    "tl_statements": 5,
+                    "cyclomatic_complexity": 25,
+                    "imports": [
+                        "os",
+                        "typer"
+                    ],
+                    "function_defs": [
+                        "locate_requirements",
+                        "extract_requirements",
+                        "extract_metadata"
+                    ]
                 },
                 {
                     "name": "essence.py",
-                    "lines": 98
+                    "tl_statements": 12,
+                    "cyclomatic_complexity": 31,
+                    "imports": [
+                        "os",
+                        "typer",
+                        "json",
+                        "ast",
+                        "analyse_reqs.locate_requirements",
+                        "analyse_reqs.extract_requirements",
+                        "analyse_reqs.extract_metadata",
+                        "ignores.collect_ignored_files"
+                    ],
+                    "function_defs": [
+                        "_get_pyfile_stats",
+                        "get_file_info",
+                        "extract_package_structure",
+                        "summarize_project"
+                    ]
                 }
             ]
         }
