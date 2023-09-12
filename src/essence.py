@@ -2,9 +2,12 @@ import os
 import typer
 import json
 import ast
+import builtins
 
 from analyse_reqs import locate_requirements, extract_requirements, extract_metadata
 from ignores import collect_ignored_files
+
+BUILTINS = dir(builtins)
 
 app = typer.Typer()
 
@@ -14,8 +17,9 @@ def _get_pyfile_stats(f):
         "top_level_statements": 0,
         "decision_points": 0,
         "imports": [],
-        "function_defs": [],
         "class_defs": [],
+        "function_defs": [],
+        "function_calls": {},
     }
     # Extract the number of function or method definitions in a .py file
     # and build a list of imports. Ignore comments and docstrings.
@@ -49,9 +53,33 @@ def _get_pyfile_stats(f):
             node, ast.AsyncFunctionDef
         ):
             stats["function_defs"].append(node.name)
+            # Let's call a helper function which will return the functions called inside this function definition:
+            stats["function_calls"][node.name] = _get_function_calls(node)
+
     stats["top_level_statements"] = len(tree.body)
 
     return stats
+
+
+def _get_function_calls(node):
+    function_calls = set([])
+
+    for n in ast.walk(node):
+        if isinstance(n, ast.Call):
+            if isinstance(n.func, ast.Name):
+                if n.func.id in BUILTINS:
+                    continue
+                function_calls.add(n.func.id)
+
+            elif isinstance(n.func, ast.Attribute):
+                if isinstance(n.func.value, ast.Name):
+                    function_calls.add(f"{n.func.value.id}.{n.func.attr}")
+                elif isinstance(n.func.value, ast.Attribute):
+                    function_calls.add(
+                        f"{n.func.value.value.id}.{n.func.value.attr}.{n.func.attr}"
+                    )
+
+    return list(function_calls)
 
 
 def get_file_info(root: str, py_file: str):
@@ -64,10 +92,12 @@ def get_file_info(root: str, py_file: str):
         file_info["cyclomatic_complexity"] = stats["decision_points"] + 1
         if stats["imports"]:
             file_info["imports"] = stats["imports"]
-        if stats["function_defs"]:
-            file_info["function_defs"] = stats["function_defs"]
         if stats["class_defs"]:
             file_info["class_defs"] = stats["class_defs"]
+        if stats["function_defs"]:
+            file_info["function_defs"] = stats["function_defs"]
+        if stats["function_calls"]:
+            file_info["function_calls"] = stats["function_calls"]
     return file_info
 
 
