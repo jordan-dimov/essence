@@ -18,7 +18,7 @@ def _get_pyfile_stats(f):
         "decision_points": 0,
         "imports": [],
         "class_defs": [],
-        "function_defs": [],
+        "function_defs": set([]),
         "function_calls": {},
     }
     # Extract the number of function or method definitions in a .py file
@@ -52,16 +52,16 @@ def _get_pyfile_stats(f):
         elif isinstance(node, ast.FunctionDef) or isinstance(
             node, ast.AsyncFunctionDef
         ):
-            stats["function_defs"].append(node.name)
+            stats["function_defs"].add(node.name)
             # Let's call a helper function which will return the functions called inside this function definition:
-            stats["function_calls"][node.name] = _get_function_calls(node)
+            stats["function_calls"][node.name] = sorted(list(_get_function_calls(node)))
 
     stats["top_level_statements"] = len(tree.body)
 
     return stats
 
 
-def _get_function_calls(node):
+def _get_function_calls(node) -> set[str]:
     function_calls = set([])
 
     for n in ast.walk(node):
@@ -75,11 +75,14 @@ def _get_function_calls(node):
                 if isinstance(n.func.value, ast.Name):
                     function_calls.add(f"{n.func.value.id}.{n.func.attr}")
                 elif isinstance(n.func.value, ast.Attribute):
-                    function_calls.add(
-                        f"{n.func.value.value.id}.{n.func.value.attr}.{n.func.attr}"
-                    )
+                    try:
+                        function_calls.add(
+                            f"{n.func.value.value.id}.{n.func.value.attr}.{n.func.attr}"
+                        )
+                    except AttributeError:
+                        function_calls.add(f"{n.func.value.attr}.{n.func.attr}")
 
-    return list(function_calls)
+    return function_calls
 
 
 def get_file_info(root: str, py_file: str):
@@ -95,7 +98,7 @@ def get_file_info(root: str, py_file: str):
         if stats["class_defs"]:
             file_info["class_defs"] = stats["class_defs"]
         if stats["function_defs"]:
-            file_info["function_defs"] = stats["function_defs"]
+            file_info["function_defs"] = list(stats["function_defs"])
         if stats["function_calls"]:
             file_info["function_calls"] = stats["function_calls"]
     return file_info

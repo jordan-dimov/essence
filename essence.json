@@ -24,14 +24,14 @@
                     ],
                     "function_calls": {
                         "collect_ignored_files": [
-                            "os.walk",
-                            "os.path.join",
-                            "gitignore_files.append",
-                            "os.path.dirname",
                             "f.read",
-                            "pathspec.PathSpec.from_lines",
+                            "gitignore_files.append",
                             "ignore_patterns.splitlines",
                             "ignored_files.append",
+                            "os.path.dirname",
+                            "os.path.join",
+                            "os.walk",
+                            "pathspec.PathSpec.from_lines",
                             "spec.match_file"
                         ]
                     }
@@ -56,23 +56,23 @@
                             "os.walk"
                         ],
                         "extract_requirements": [
+                            "dependencies.append",
                             "f.readlines",
                             "line.startswith",
-                            "typer.echo",
                             "line.strip",
-                            "dependencies.append"
+                            "typer.echo"
                         ],
                         "extract_metadata": [
                             "line.split",
-                            "typer.echo",
-                            "line.startswith"
+                            "line.startswith",
+                            "typer.echo"
                         ]
                     }
                 },
                 {
                     "name": "essence.py",
                     "tl_statements": 15,
-                    "cyclomatic_complexity": 39,
+                    "cyclomatic_complexity": 40,
                     "imports": [
                         "os",
                         "typer",
@@ -85,47 +85,47 @@
                         "ignores.collect_ignored_files"
                     ],
                     "function_defs": [
-                        "_get_pyfile_stats",
-                        "_get_function_calls",
                         "get_file_info",
                         "extract_package_structure",
+                        "_get_function_calls",
+                        "_get_pyfile_stats",
                         "summarize_project"
                     ],
                     "function_calls": {
                         "_get_pyfile_stats": [
-                            "ast.parse",
-                            "f.read",
                             "_get_function_calls",
-                            "ast.walk"
+                            "ast.parse",
+                            "ast.walk",
+                            "f.read"
                         ],
                         "_get_function_calls": [
-                            "function_calls.add",
-                            "ast.walk"
+                            "ast.walk",
+                            "function_calls.add"
                         ],
                         "get_file_info": [
-                            "os.path.join",
-                            "_get_pyfile_stats"
+                            "_get_pyfile_stats",
+                            "os.path.join"
                         ],
                         "extract_package_structure": [
-                            "get_file_info",
-                            "os.walk",
+                            "f.endswith",
                             "files_in_dir.append",
+                            "get_file_info",
                             "os.path.join",
+                            "os.walk",
                             "root.replace",
-                            "typer.echo",
-                            "f.endswith"
+                            "typer.echo"
                         ],
                         "summarize_project": [
-                            "extract_requirements",
                             "app.command",
-                            "reqs_file.endswith",
-                            "os.path.join",
                             "collect_ignored_files",
-                            "typer.echo",
-                            "locate_requirements",
+                            "extract_metadata",
                             "extract_package_structure",
+                            "extract_requirements",
                             "json.dump",
-                            "extract_metadata"
+                            "locate_requirements",
+                            "os.path.join",
+                            "reqs_file.endswith",
+                            "typer.echo"
                         ]
                     }
                 }
